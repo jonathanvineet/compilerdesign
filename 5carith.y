@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 int yylex(void);
-void yyerror(const char *s){ printf("Invalid expression\n"); }
+void yyerror(const char *s){ fprintf(stderr, "Error: %s\n", s); }
 %}
 %token NUMBER
 %left '+' '-'
@@ -10,16 +10,16 @@ void yyerror(const char *s){ printf("Invalid expression\n"); }
 %%
 line: expr '\n' { printf("Valid expression\n"); }
     ;
-expr: expr '+' expr
-    | expr '-' expr
-    | expr '*' expr
-    | expr '/' expr
-    | '(' expr ')'
-    | NUMBER
+expr: expr '+' expr { $$ = $1 + $3; }
+    | expr '-' expr { $$ = $1 - $3; }
+    | expr '*' expr { $$ = $1 * $3; }
+    | expr '/' expr { $$ = $3 ? $1/$3 : 0; }
+    | '(' expr ')'  { $$ = $2; }
+    | NUMBER        { $$ = $1; }
     ;
 %%
 int main(){ 
-    printf("Enter arithmetic expression:\n"); 
+    printf("Enter expression:\n"); 
     yyparse(); 
     return 0; 
 }

@@ -1,43 +1,36 @@
-# lexer_simple.py
-# Run: python3 lexer_simple.py input.c
-
 import sys
 import re
 
-token_spec = [
-    ("KEYWORD", r'\b(if|else|while|for|return|int|float|char|void|printf|struct|main)\b'),
-    ("IDENT",   r'[A-Za-z_][A-Za-z0-9_]*'),
-    ("INT",     r'\b\d+\b'),
-    ("OP",      r'[+\-*/=%{}();,<>]'),
-    ("STRING",  r'"[^"]*"'),
-    ("SKIP",    r'[ \t]+'),
-    ("NEWL",    r'\n'),
-    ("MISMATCH",r'.'),
+# Define token patterns
+patterns = [
+    (r'\b(if|else|while|for|return|int|float|char|void|printf|struct|main)\b', "KEYWORD"),
+    (r'[A-Za-z_][A-Za-z0-9_]*', "IDENT"),
+    (r'\d+', "INT"),
+    (r'[+\-*/=%{}();,<>]', "OP"),
+    (r'"[^"]*"', "STRING"),
+    (r'[ \t]+', None),  # Skip whitespace
+    (r'\n', None),       # Skip newlines
 ]
-tok_regex = '|'.join(f'(?P<{name}>{pat})' for name,pat in token_spec)
 
 def lex(text):
-    for mo in re.finditer(tok_regex, text):
-        kind = mo.lastgroup
-        value = mo.group()
-        if kind=="SKIP" or kind=="NEWL": continue
-        if kind=="MISMATCH":
-            print("Unknown:", value)
-        else:
-            print(f"{value}\t=> {kind}")
-
-if __name__=="__main__":
-    if len(sys.argv) < 2:
-        print("Enter C code (empty line to exit):")
-        while True:
-            try:
-                line = input()
-                if line.strip() == "":
-                    break
-                lex(line)
-            except EOFError:
+    pos = 0
+    while pos < len(text):
+        matched = False
+        for pattern, token_type in patterns:
+            match = re.match(pattern, text[pos:])
+            if match:
+                value = match.group(0)
+                print(value + "\t=> " + token_type)
+                pos += len(value)
+                matched = True
                 break
-    else:
-        with open(sys.argv[1]) as f:
-            text = f.read()
-        lex(text)
+        if not matched:
+            print("Unknown: " + text[pos])
+            pos += 1
+
+print("Enter C code (empty line to exit):")
+while True:
+    line = input()
+    if line == "":
+        break
+    lex(line)

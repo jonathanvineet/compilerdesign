@@ -2,10 +2,10 @@
 #include "y.tab.h"
 %}
 %%
-[a-zA-Z]+ { yylval = strdup(yytext); return ID; }
-[0-9]+    { yylval = strdup(yytext); return NUM; }
-[ \t]     { }
-\n        { return 0; }
-.         { return yytext[0]; }
+[a-zA-Z][a-zA-Z0-9]* { yylval.sval = strdup(yytext); return ID; }
+[0-9]+               { yylval.sval = strdup(yytext); return NUM; }
+[=+\-\n]             { return yytext[0]; }
+[ \t]                { }
+.                    { }
 %%
 int yywrap(){ return 1; }

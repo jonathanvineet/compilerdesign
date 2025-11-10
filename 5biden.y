@@ -2,15 +2,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 int yylex(void);
-void yyerror(const char *s){ /* suppress default error */ }
+void yyerror(const char *s){ }
 %}
 %union {
-  char *sval;
+    char *sval;
 }
 %token <sval> VARIABLE
 %%
-start: /* empty */
-     | start VARIABLE { printf("Valid variable: %s\n", $2); free($2); }
-     ;
+line: VARIABLE '\n' { printf("Valid variable: %s\n", $1); free($1); }
+    ;
 %%
-int main(){ printf("Enter variable:\n"); yyparse(); return 0; }
+int main(){ 
+    printf("Enter variable:\n"); 
+    yyparse(); 
+    return 0; 
+}

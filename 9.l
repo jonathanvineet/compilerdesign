@@ -8,6 +8,6 @@
 -               { return SUB; }
 [ \t]           { }
 \n              { return EOL; }
-.               { return yytext[0]; }
+.               { }
 %%
 int yywrap(){ return 1; }

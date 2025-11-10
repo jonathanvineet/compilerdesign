@@ -1,7 +1,8 @@
 %{
 #include <stdio.h>
+#include <stdlib.h>
 int yylex(void);
-void yyerror(char *s){ printf("Invalid control structure\n"); }
+void yyerror(const char *s){ fprintf(stderr, "Error: %s\n", s); }
 %}
 %token FOR WHILE IF ELSE SWITCH CASE ID NUMBER EQ NE LE GE AND OR
 %%
@@ -34,4 +35,8 @@ expr: ID
     | '(' expr ')'
     ;
 %%
-int main(){ printf("Enter control structure:\n"); yyparse(); return 0; }
+int main(){ 
+    printf("Enter control structure:\n"); 
+    yyparse(); 
+    return 0; 
+}
