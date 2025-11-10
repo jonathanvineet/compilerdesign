@@ -1,0 +1,662 @@
+================================================================================
+                    COMPILER DESIGN - ALL PROGRAMS
+================================================================================
+
+================================================================================
+PROGRAM 2a: SYMBOL TABLE IMPLEMENTATION (Python)
+================================================================================
+
+File: 2a.py
+
+Description:
+- Implements a simple symbol table using Python dictionary
+- Stores identifier, type, scope, and value
+- Supports insert and display operations
+
+Code:
+--------------------------------------------------------------------------------
+# symbol_table.py
+# Run: python3 2a.py
+
+# Dictionary to store symbols: {name: [type, scope, value]}
+table = {}
+
+def insert(name, typ="int", scope=1, value=0):
+    if name in table:
+        print(f"{name} already present, updating.")
+    table[name] = [typ, scope, value]
+    print(f"Inserted {name}.")
+
+def display():
+    if not table:
+        print("Symbol table empty.")
+        return
+    print(f"{'Id':<10}{'Type':<8}{'Scope':<6}{'Value':<8}")
+    for name, data in table.items():
+        print(f"{name:<10}{data[0]:<8}{data[1]:<6}{data[2]:<8}")
+
+# Demo
+insert("a")
+insert("b")
+insert("c", value=10)
+display()
+--------------------------------------------------------------------------------
+
+Usage:
+    python3 2a.py
+
+Output:
+    Inserted a.
+    Inserted b.
+    Inserted c.
+    Id        Type    Scope Value   
+    a         int     1     0       
+    b         int     1     0       
+    c         int     1     10
+
+
+================================================================================
+PROGRAM 2b: LEXICAL ANALYZER (Python)
+================================================================================
+
+File: 2b.py
+
+Description:
+- Simple lexical analyzer for C code
+- Recognizes keywords, identifiers, numbers, operators, and strings
+- Uses regular expressions for pattern matching
+
+Code:
+--------------------------------------------------------------------------------
+import re
+
+patterns = [
+    (r'\b(if|else|while|for|return|int|float|char|void|printf|struct|main)\b', "KEYWORD"),
+    (r'[A-Za-z_][A-Za-z0-9_]*', "IDENT"),
+    (r'\d+', "INT"),
+    (r'[+\-*/=%{}();,<>]', "OP"),
+    (r'"[^"]*"', "STRING"),
+    (r'[ \t]+', None),
+    (r'\n', None),
+]
+
+def lex(text):
+    pos = 0
+    while pos < len(text):
+        matched = False
+        for pattern, token_type in patterns:
+            match = re.match(pattern, text[pos:])
+            if match:
+                value = match.group(0)
+                if token_type:
+                    print(value + "\t=> " + token_type)
+                pos += len(value)
+                matched = True
+                break
+        if not matched:
+            print("Unknown: " + text[pos])
+            pos += 1
+
+print("Enter C code (empty line to exit):")
+while True:
+    line = input()
+    if line == "":
+        break
+    lex(line)
+--------------------------------------------------------------------------------
+
+Usage:
+    python3 2b.py
+
+Example Input:
+    int x = 5;
+
+Example Output:
+    int     => KEYWORD
+    x       => IDENT
+    =       => OP
+    5       => INT
+    ;       => OP
+
+
+================================================================================
+PROGRAM 5a: CALCULATOR (Lex + Yacc)
+================================================================================
+
+Files: 5acal.l, 5acal.y
+
+Description:
+- Simple arithmetic calculator
+- Supports +, -, *, / and parentheses
+- Evaluates expressions and prints results
+
+5acal.l (Lexer):
+--------------------------------------------------------------------------------
+%{
+#include "y.tab.h"
+%}
+%%
+[0-9]+    { yylval = atoi(yytext); return NUMBER; }
+\n        { return '\n'; }
+[ \t]     { }
+.         { return yytext[0]; }
+%%
+int yywrap(){ return 1; }
+--------------------------------------------------------------------------------
+
+5acal.y (Parser):
+--------------------------------------------------------------------------------
+%{
+#include <stdio.h>
+#include <stdlib.h>
+int yylex(void);
+void yyerror(const char *s){ fprintf(stderr, "Error: %s\n", s); }
+%}
+%token NUMBER
+%left '+' '-'
+%left '*' '/'
+%%
+line: expr '\n' { printf("Result: %d\n", $1); }
+    ;
+expr: expr '+' expr { $$ = $1 + $3; }
+    | expr '-' expr { $$ = $1 - $3; }
+    | expr '*' expr { $$ = $1 * $3; }
+    | expr '/' expr { $$ = $3 ? $1/$3 : 0; }
+    | '(' expr ')'  { $$ = $2; }
+    | NUMBER        { $$ = $1; }
+    ;
+%%
+int main(){ 
+    printf("Enter expression:\n"); 
+    yyparse(); 
+    return 0; 
+}
+--------------------------------------------------------------------------------
+
+Build & Run:
+    yacc -d 5acal.y
+    lex 5acal.l
+    gcc y.tab.c lex.yy.c -o calc
+    ./calc
+
+Example:
+    2+3*4     => Result: 14
+    (2+3)*4   => Result: 20
+
+
+================================================================================
+PROGRAM 5b: IDENTIFIER VALIDATOR (Lex + Yacc)
+================================================================================
+
+Files: 5biden.l, 5biden.y
+
+Description:
+- Validates C identifiers
+- Accepts valid identifiers (start with letter, contain letters/digits)
+- Rejects invalid identifiers (start with digit, special characters)
+
+5biden.l (Lexer):
+--------------------------------------------------------------------------------
+%{
+#include "y.tab.h"
+#include <string.h>
+%}
+%%
+[a-zA-Z][a-zA-Z0-9]* { yylval.sval = strdup(yytext); return VARIABLE; }
+[0-9][a-zA-Z0-9]*    { printf("Invalid variable\n"); }
+[^ \t\n]+            { printf("Invalid variable\n"); }
+\n        { return '\n'; }
+[ \t]     { }
+%%
+int yywrap(){ return 1; }
+--------------------------------------------------------------------------------
+
+5biden.y (Parser):
+--------------------------------------------------------------------------------
+%{
+#include <stdio.h>
+#include <stdlib.h>
+int yylex(void);
+void yyerror(const char *s){ fprintf(stderr, "Error: %s\n", s); }
+%}
+%union {
+    char *sval;
+}
+%token <sval> VARIABLE
+%%
+line: VARIABLE '\n' { printf("Valid variable: %s\n", $1); free($1); }
+    ;
+%%
+int main(){ 
+    printf("Enter variable:\n"); 
+    yyparse(); 
+    return 0; 
+}
+--------------------------------------------------------------------------------
+
+Build & Run:
+    yacc -d 5biden.y
+    lex 5biden.l
+    gcc y.tab.c lex.yy.c -o biden
+    ./biden
+
+Example:
+    myvar123        => Valid variable: myvar123
+    12var           => Invalid variable
+    abc             => Valid variable: abc
+
+
+================================================================================
+PROGRAM 5c: ARITHMETIC EXPRESSION VALIDATOR (Lex + Yacc)
+================================================================================
+
+Files: 5carith.l, 5carith.y
+
+Description:
+- Validates arithmetic expressions
+- Checks syntax of expressions with +, -, *, / operators
+- Reports valid or invalid expression
+
+5carith.l (Lexer):
+--------------------------------------------------------------------------------
+%{
+#include "y.tab.h"
+%}
+%%
+[0-9]+    { yylval = atoi(yytext); return NUMBER; }
+\n        { return '\n'; }
+[ \t]     { }
+.         { return yytext[0]; }
+%%
+int yywrap(){ return 1; }
+--------------------------------------------------------------------------------
+
+5carith.y (Parser):
+--------------------------------------------------------------------------------
+%{
+#include <stdio.h>
+#include <stdlib.h>
+int yylex(void);
+void yyerror(const char *s){ fprintf(stderr, "Error: %s\n", s); }
+%}
+%token NUMBER
+%left '+' '-'
+%left '*' '/'
+%%
+line: expr '\n' { printf("Valid expression\n"); }
+    ;
+expr: expr '+' expr { $$ = $1 + $3; }
+    | expr '-' expr { $$ = $1 - $3; }
+    | expr '*' expr { $$ = $1 * $3; }
+    | expr '/' expr { $$ = $3 ? $1/$3 : 0; }
+    | '(' expr ')'  { $$ = $2; }
+    | NUMBER        { $$ = $1; }
+    ;
+%%
+int main(){ 
+    printf("Enter expression:\n"); 
+    yyparse(); 
+    return 0; 
+}
+--------------------------------------------------------------------------------
+
+Build & Run:
+    yacc -d 5carith.y
+    lex 5carith.l
+    gcc y.tab.c lex.yy.c -o carith
+    ./carith
+
+Example:
+    2+3*4           => Valid expression
+    (5+3)*2         => Valid expression
+    2++3            => Error (Invalid expression)
+
+
+================================================================================
+PROGRAM 6: THREE-ADDRESS CODE GENERATOR (Lex + Yacc)
+================================================================================
+
+Files: 6.l, 6.y
+
+Description:
+- Generates three-address intermediate code
+- Converts expressions like x=a+b to:
+  t1 = a
+  t2 = b
+  t3 = t1 + t2
+  x = t3
+
+6.l (Lexer):
+--------------------------------------------------------------------------------
+%{
+#include "y.tab.h"
+%}
+%%
+[a-zA-Z][a-zA-Z0-9]* { yylval.sval = strdup(yytext); return ID; }
+[0-9]+               { yylval.sval = strdup(yytext); return NUM; }
+[=+\-\n]             { return yytext[0]; }
+[ \t]                { }
+.                    { }
+%%
+int yywrap(){ return 1; }
+--------------------------------------------------------------------------------
+
+6.y (Parser):
+--------------------------------------------------------------------------------
+%{
+#include <stdio.h>
+#include <stdlib.h>
+int tmp=0;
+int yylex(void);
+void yyerror(const char*s){ /* silent */ }
+%}
+%union {
+    char *sval;
+    int tnum;
+}
+%token <sval> ID NUM
+%type <tnum> S E T
+%%
+S: ID '=' E '\n' { printf("%s = t%d\n", $1, $3); free($1); }
+ ;
+E: E '+' T { printf("t%d = t%d + t%d\n", ++tmp, $1, $3); $$ = tmp; }
+ | E '-' T { printf("t%d = t%d - t%d\n", ++tmp, $1, $3); $$ = tmp; }
+ | T { $$ = $1; }
+ ;
+T: ID { printf("t%d = %s\n", ++tmp, $1); free($1); $$ = tmp; }
+ | NUM { printf("t%d = %s\n", ++tmp, $1); free($1); $$ = tmp; }
+ ;
+%%
+int main(){ printf("Enter assignment (e.g., x=y+z):\n"); yyparse(); return 0;}
+--------------------------------------------------------------------------------
+
+Build & Run:
+    yacc -d 6.y
+    lex 6.l
+    gcc y.tab.c lex.yy.c -o prog6
+    ./prog6
+
+Example Input:
+    x=a+b-c
+
+Example Output:
+    t1 = a
+    t2 = b
+    t3 = t1 + t2
+    t4 = c
+    t5 = t3 - t4
+    x = t5
+
+
+================================================================================
+PROGRAM 7: INTERMEDIATE CODE TO ASSEMBLY CONVERTER (Python)
+================================================================================
+
+File: 7..py
+
+Description:
+- Converts three-address code to assembly instructions
+- Generates MOV, ADD, SUB, MUL, DIV instructions
+- Handles multiple operators in expressions
+
+Code:
+--------------------------------------------------------------------------------
+print("Enter intermediate code (format: a=b+c), press Enter to end:")
+while True:
+    line = input().strip()
+    if line == "":
+        break
+    
+    lhs, rhs = line.split('=')
+    
+    # Replace operators with spaces to split
+    for op in ['+', '-', '*', '/']:
+        rhs = rhs.replace(op, f' {op} ')
+    
+    parts = rhs.split()
+    
+    opr_map = {'+': "ADD", '-': "SUB", '*': "MUL", '/': "DIV"}
+    
+    print(f"MOV R0,{parts[0]}")
+    
+    for i in range(1, len(parts), 2):
+        op = parts[i]
+        operand = parts[i+1]
+        print(f"{opr_map[op]} R0,{operand}")
+    
+    print(f"MOV {lhs},R0")
+--------------------------------------------------------------------------------
+
+Usage:
+    python3 7..py
+
+Example Input:
+    a=b+c+d
+
+Example Output:
+    MOV R0,b
+    ADD R0,c
+    ADD R0,d
+    MOV a,R0
+
+
+================================================================================
+PROGRAM 8: CONSTANT FOLDING OPTIMIZER (Python)
+================================================================================
+
+File: 8.py
+
+Description:
+- Performs constant folding optimization
+- Evaluates constant expressions at compile time
+- Replaces expressions like 2+3 with 5
+
+Code:
+--------------------------------------------------------------------------------
+import re
+
+def constant_folding(line):
+    # Keep folding until no more constants found
+    while True:
+        # Match pattern: number operator number
+        match = re.search(r'(\d+)\s*([+\-*/])\s*(\d+)', line)
+        
+        if match:
+            num1 = int(match.group(1))
+            opr = match.group(2)
+            num2 = int(match.group(3))
+            
+            # Calculate result
+            if opr == '+':
+                result = num1 + num2
+            elif opr == '-':
+                result = num1 - num2
+            elif opr == '*':
+                result = num1 * num2
+            elif opr == '/':
+                result = num1 // num2
+            
+            # Replace the matched expression with result
+            line = line[:match.start()] + str(result) + line[match.end():]
+        else:
+            break
+    
+    print(line.strip())
+
+# Main program
+print("Enter intermediate code (empty line to exit):")
+while True:
+    line = input()
+    if line.strip() == "":
+        break
+    constant_folding(line)
+--------------------------------------------------------------------------------
+
+Usage:
+    python3 8.py
+
+Example Input:
+    x = 2 + 3
+    y = 10 - 4 + 2
+    z = a + 5 * 2
+
+Example Output:
+    x = 5
+    y = 8
+    z = a + 10
+
+
+================================================================================
+PROGRAM 9: TYPE CHECKING (Lex + Yacc)
+================================================================================
+
+Files: 9.l, 9.y
+
+Description:
+- Checks type compatibility in expressions
+- Detects mixing int and double types
+- Reports type mismatches
+
+9.l (Lexer):
+--------------------------------------------------------------------------------
+%{
+#include "y.tab.h"
+%}
+%%
+[0-9]+\.[0-9]+  { yylval.dval = atof(yytext); return DOUBLE; }
+[0-9]+          { yylval.ival = atoi(yytext); return INT; }
+\+              { return ADD; }
+-               { return SUB; }
+[ \t]           { }
+\n              { return EOL; }
+.               { }
+%%
+int yywrap(){ return 1; }
+--------------------------------------------------------------------------------
+
+9.y (Parser):
+--------------------------------------------------------------------------------
+%{
+#include <stdio.h>
+#include <stdlib.h>
+int yylex(void);
+void yyerror(const char *s){ }
+%}
+%union { 
+    int ival; 
+    double dval; 
+    int type; /* 0=int, 1=double */
+}
+%token <ival> INT
+%token <dval> DOUBLE
+%token ADD SUB EOL
+%type <type> expression term
+%%
+line: expression EOL
+    ;
+expression:
+      expression ADD term { 
+          if($1 != $3) {
+              printf("Type mismatch: cannot add int and double\n");
+          } else {
+              printf("Type correct\n");
+          }
+          $$ = ($1 == 1 || $3 == 1) ? 1 : 0;
+      }
+    | expression SUB term { 
+          if($1 != $3) {
+              printf("Type mismatch: cannot subtract int and double\n");
+          } else {
+              printf("Type correct\n");
+          }
+          $$ = ($1 == 1 || $3 == 1) ? 1 : 0;
+      }
+    | term { $$ = $1; }
+    ;
+term:
+      INT    { $$ = 0; }
+    | DOUBLE { $$ = 1; }
+    ;
+%%
+int main(){ yyparse(); return 0; }
+--------------------------------------------------------------------------------
+
+Build & Run:
+    yacc -d 9.y
+    lex 9.l
+    gcc y.tab.c lex.yy.c -o prog9
+    ./prog9
+
+Example:
+    1+2             => Type correct
+    1.5+2           => Type mismatch: cannot add int and double
+    3.14+2.5        => Type correct
+
+
+================================================================================
+KEY CONCEPTS
+================================================================================
+
+1. LEXICAL ANALYSIS (Lex/Flex)
+   - Pattern matching using regular expressions
+   - Token generation
+   - yylval for passing values to parser
+
+2. SYNTAX ANALYSIS (Yacc/Bison)
+   - Grammar rules (BNF notation)
+   - $1, $2, $3... for accessing rule components
+   - $$ for setting rule result
+   - %union for handling multiple data types
+   - %token for terminal symbols
+   - %type for non-terminal symbols
+
+3. THREE-ADDRESS CODE
+   - Intermediate representation
+   - Format: result = operand1 operator operand2
+   - Example: t1 = a + b
+
+4. TYPE CHECKING
+   - Ensuring type compatibility
+   - Type promotion (int to double)
+   - Error detection for type mismatches
+
+5. CODE OPTIMIZATION
+   - Constant folding
+   - Strength reduction
+   - Dead code elimination
+
+
+================================================================================
+COMPILATION COMMANDS
+================================================================================
+
+For Lex + Yacc programs:
+    yacc -d file.y      # Generate parser
+    lex file.l          # Generate lexer
+    gcc y.tab.c lex.yy.c -o output
+    ./output
+
+For Python programs:
+    python3 file.py
+
+
+================================================================================
+REGEX PATTERNS EXPLAINED
+================================================================================
+
+\d      - Digit (0-9)
+\s      - Whitespace (space, tab, newline)
+\w      - Word character (a-z, A-Z, 0-9, _)
+\b      - Word boundary
++       - One or more
+*       - Zero or more
+?       - Zero or one (optional)
+[abc]   - Character class (a or b or c)
+[^abc]  - NOT (anything except a, b, c)
+.       - Any character
+|       - OR (alternation)
+
+
+================================================================================
+END OF DOCUMENT
+================================================================================
