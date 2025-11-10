@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 int yylex(void);
-void yyerror(const char *s){ fprintf(stderr,"Error: %s\n",s); }
+void yyerror(const char *s){ }
 %}
 %union { 
     int ival; 
@@ -14,12 +14,7 @@ void yyerror(const char *s){ fprintf(stderr,"Error: %s\n",s); }
 %token ADD SUB EOL
 %type <type> expression term
 %%
-program: /* empty */
-       | program line EOL
-       ;
-line: expression { 
-          /* Type correct message already printed in expression rule */
-      }
+line: expression EOL
     ;
 expression:
       expression ADD term { 
@@ -30,11 +25,19 @@ expression:
           }
           $$ = ($1 == 1 || $3 == 1) ? 1 : 0;
       }
+    | expression SUB term { 
+          if($1 != $3) {
+              printf("Type mismatch: cannot subtract int and double\n");
+          } else {
+              printf("Type correct\n");
+          }
+          $$ = ($1 == 1 || $3 == 1) ? 1 : 0;
+      }
     | term { $$ = $1; }
     ;
 term:
-      INT    { $$ = 0; printf("int "); }
-    | DOUBLE { $$ = 1; printf("double "); }
+      INT    { $$ = 0; }
+    | DOUBLE { $$ = 1; }
     ;
 %%
 int main(){ yyparse(); return 0; }
